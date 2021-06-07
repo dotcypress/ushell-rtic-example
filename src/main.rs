@@ -102,6 +102,9 @@ const APP: () = {
                 Ok(None) => break,
                 Ok(Some(ushell::Input::Command(_, command))) => {
                     match command {
+                        "" => {
+                            shell.write_str(CR).ok();
+                        }
                         "help" => {
                             shell.write_str(HELP).ok();
                         }
@@ -126,26 +129,23 @@ const APP: () = {
                             )
                             .ok();
                         }
-                        _ => {
-                            if command.len() == 0 {
-                                shell.write_str(CR).ok();
-                            } else if command.len() > 4 && command.starts_with("set ") {
-                                let (_, arg) = command.split_at(4);
-                                match btoi::btoi(arg.as_bytes()) {
-                                    Ok(freq) if freq > 0 && freq <= 100 => {
-                                        *blinky_freq = freq;
-                                        blinky_timer.lock(|t| {
-                                            t.start((freq as u32 * 2).hz());
-                                        });
-                                        shell.write_str(CR).ok();
-                                    }
-                                    _ => {
-                                        write!(shell, "{0:}invalid frequency{0:}", CR).ok();
-                                    }
+                        _ if command.len() > 4 && command.starts_with("set ") => {
+                            let (_, arg) = command.split_at(4);
+                            match btoi::btoi(arg.as_bytes()) {
+                                Ok(freq) if freq > 0 && freq <= 100 => {
+                                    *blinky_freq = freq;
+                                    blinky_timer.lock(|t| {
+                                        t.start((freq as u32 * 2).hz());
+                                    });
+                                    shell.write_str(CR).ok();
                                 }
-                            } else {
-                                write!(shell, "{0:}invalid command{0:}", CR).ok();
+                                _ => {
+                                    write!(shell, "{0:}invalid frequency{0:}", CR).ok();
+                                }
                             }
+                        }
+                        _ => {
+                            write!(shell, "{0:}invalid command{0:}", CR).ok();
                         }
                     }
                     shell.write_str(SHELL_PROMT).ok();
