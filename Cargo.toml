@@ -1,0 +1,32 @@
+[package]
+name = "ushell-rtic-example"
+authors = ["Vitaly Domnikov <oss@vitaly.codes>"]
+edition = "2018"
+license = "MIT/Apache-2.0"
+readme = "README.md"
+repository = "https://github.com/dotcypress/ushell-rtic-example"
+version = "0.0.1"
+
+[dependencies]
+cortex-m = "0.7.1"
+cortex-m-rt = "0.6.10"
+cortex-m-rtic = "0.5.5"
+panic-halt = "0.2.0"
+
+[dependencies.stm32g0xx-hal]
+version = "0.1.0"
+features = ["rt", "stm32g071"]
+
+[dependencies.ushell]
+git = "https://github.com/dotcypress/ushell.git"
+branch = "main"
+
+[dependencies.btoi ]
+vesion = "0.4.2"
+default-features = false
+
+[profile.release]
+debug = false
+codegen-units = 1
+incremental = false
+lto = true
