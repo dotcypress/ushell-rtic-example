@@ -79,7 +79,7 @@ const APP: () = {
     #[task(binds = USART2, priority = 1, resources = [shell, blinky_timer, blinky_freq, status])]
     fn serial_data(ctx: serial_data::Context) {
         const HELP: &str = "\r\n\
-            LED Blinky Shell v.0\r\n\r\n\
+            \x1b[31mL\x1b[32mE\x1b[34mD \x1b[33mBlinky Shell \x1b[0mv.0\r\n\r\n\
             USAGE:\r\n\
             \t command [arg]\r\n\r\n\
             COMMANDS:\r\n\

@@ -1,4 +1,6 @@
-# ushell-tric-example
+# ushell-rtic-example
+
+<img src="shell.png" />
 
 ## License
 
