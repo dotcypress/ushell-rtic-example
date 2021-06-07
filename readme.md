@@ -1,6 +1,6 @@
 # ushell-rtic-example
 
-<img src="shell.png" />
+<img width="405" src="shell.png" />
 
 ## License
 
