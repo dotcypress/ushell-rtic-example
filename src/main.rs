@@ -18,7 +18,7 @@ use hal::{
     serial, stm32,
     timer::*,
 };
-use ushell::{autocomplete::StaticAutocomplete, history::LRUHistory, UShell};
+use ushell::{autocomplete::StaticAutocomplete, history::LRUHistory, Input, UShell};
 
 pub type Led = PA5<Output<PushPull>>;
 pub type BlinkyTimer = Timer<stm32::TIM16>;
@@ -100,8 +100,8 @@ const APP: () = {
         loop {
             match shell.poll() {
                 Ok(None) => break,
-                Ok(Some(ushell::Input::Command(_, command))) => {
-                    match command {
+                Ok(Some(Input::Command(_, cmd))) => {
+                    match cmd {
                         "" => {
                             shell.write_str(CR).ok();
                         }
@@ -129,8 +129,8 @@ const APP: () = {
                             )
                             .ok();
                         }
-                        _ if command.len() > 4 && command.starts_with("set ") => {
-                            let (_, arg) = command.split_at(4);
+                        _ if cmd.len() > 4 && cmd.starts_with("set ") => {
+                            let (_, arg) = cmd.split_at(4);
                             match btoi::btoi(arg.as_bytes()) {
                                 Ok(freq) if freq > 0 && freq <= 100 => {
                                     *blinky_freq = freq;

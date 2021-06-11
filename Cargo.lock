@@ -391,8 +391,9 @@ checksum = "879f6906492a7cd215bfa4cf595b600146ccfac0c79bcbd1f3000162af5e8b06"
 
 [[package]]
 name = "uluru"
-version = "2.0.0"
-source = "git+https://github.com/dotcypress/uluru.git?branch=feature/index-access#d9cc600bcc53fcf9da88f9cceefe1bae3f0841f9"
+version = "2.1.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ce7967da538013500fa504ce61af688d6a310e6dea6985c71f3c6be37e2a55c7"
 dependencies = [
  "arrayvec",
 ]
@@ -405,8 +406,9 @@ checksum = "8ccb82d61f80a663efe1f787a51b16b5a51e3314d6ac365b08639f52387b33f3"
 
 [[package]]
 name = "ushell"
-version = "0.0.1"
-source = "git+https://github.com/dotcypress/ushell.git?branch=main#a3d7202c36259f5a9bb50e5804f4caae33dbb08c"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "b44f0931da6d00fc3854f23fd92dcaedf6567a3ee6d24cc948cf9aa2f00bda76"
 dependencies = [
  "embedded-hal",
  "heapless 0.7.1",
