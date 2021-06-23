@@ -139,7 +139,6 @@ const APP: () = {
                                 write!(shell, "{0:}unsupported frequency{0:}", CR).ok();
                             }
                         },
-
                         "" => {
                             shell.write_str(CR).ok();
                         }
