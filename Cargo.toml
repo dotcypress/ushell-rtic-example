@@ -12,7 +12,7 @@ cortex-m = "0.7.1"
 cortex-m-rt = "0.6.10"
 cortex-m-rtic = "0.5.5"
 panic-halt = "0.2.0"
-ushell = "0.2.2"
+ushell = "0.3.0"
 
 [dependencies.stm32g0xx-hal]
 version = "0.1.0"

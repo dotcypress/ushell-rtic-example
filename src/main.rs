@@ -13,7 +13,8 @@ use core::fmt::Write;
 use core::usize;
 
 use hal::{gpio::*, prelude::*, serial, stm32, timer::*};
-use ushell::{autocomplete::StaticAutocomplete, history::LRUHistory, Input, UShell};
+use ushell::ShellError;
+use ushell::{autocomplete::StaticAutocomplete, history::LRUHistory, UShell};
 
 const SHELL_PROMT: &str = "#> ";
 const CR: &str = "\r\n";
@@ -95,17 +96,13 @@ const APP: () = {
     fn serial_data(ctx: serial_data::Context) {
         let shell = ctx.resources.shell;
         let blink_freq = ctx.resources.blink_freq;
-
         let mut blink_timer = ctx.resources.blink_timer;
         let mut blink_enabled = ctx.resources.blink_enabled;
 
         loop {
             match shell.poll() {
-                Ok(Some(Input::Command(_, cmd))) => {
+                Ok(Some((cmd, args))) => {
                     match cmd {
-                        "" => {
-                            shell.write_str(CR).ok();
-                        }
                         "help" => {
                             shell.write_str(HELP).ok();
                         }
@@ -130,28 +127,29 @@ const APP: () = {
                             )
                             .ok();
                         }
-                        _ if cmd.starts_with("set ") => {
-                            let (_, freq) = cmd.split_at(4);
-                            match btoi::btoi(freq.as_bytes()) {
-                                Ok(freq) if freq > 0 && freq <= 100 => {
-                                    *blink_freq = freq;
-                                    blink_timer.lock(|t| {
-                                        t.start((freq as u32 * 2).hz());
-                                    });
-                                    shell.write_str(CR).ok();
-                                }
-                                _ => {
-                                    write!(shell, "{0:}unsupported frequency{0:}", CR).ok();
-                                }
+                        "set" => match btoi::btoi(args.as_bytes()) {
+                            Ok(freq) if freq > 0 && freq <= 100 => {
+                                *blink_freq = freq;
+                                blink_timer.lock(|t| {
+                                    t.start((freq as u32 * 2).hz());
+                                });
+                                shell.write_str(CR).ok();
                             }
+                            _ => {
+                                write!(shell, "{0:}unsupported frequency{0:}", CR).ok();
+                            }
+                        },
+
+                        "" => {
+                            shell.write_str(CR).ok();
                         }
                         _ => {
-                            write!(shell, "{0:}unknown command{0:}", CR).ok();
+                            write!(shell, "{0:}unsupported command{0:}", CR).ok();
                         }
                     }
                     shell.write_str(SHELL_PROMT).ok();
                 }
-                Ok(None) => break,
+                Err(ShellError::WouldBlock) => break,
                 _ => {}
             }
         }
