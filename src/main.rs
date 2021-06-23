@@ -14,21 +14,27 @@ use core::usize;
 
 use hal::{gpio::*, prelude::*, serial, stm32, timer::*};
 use ushell::ShellError;
-use ushell::{autocomplete::StaticAutocomplete, history::LRUHistory, UShell};
+use ushell::{autocomplete::StaticAutocomplete, control, history::LRUHistory, Input, UShell};
 
-const SHELL_PROMT: &str = "#> ";
+const SHELL_PROMPT: &str = "#> ";
 const CR: &str = "\r\n";
 const HELP: &str = "\r\n\
-\x1b[31mL\x1b[32mE\x1b[34mD \x1b[33mBlinky Shell \x1b[0mv.0\r\n\r\n\
+\x1b[31mL\x1b[32mE\x1b[34mD \x1b[33mBlinky Shell \x1b[0mv.1\r\n\r\n\
 USAGE:\r\n\
-\t command [arg]\r\n\r\n\
+\tcommand [arg]\r\n\r\n\
 COMMANDS:\r\n\
-\t set <Hz>\t Set animation frequency in Hertz [1-100]\r\n\
-\t status\t\t Get animation status\r\n\
-\t on\t\t Start animation\r\n\
-\t off\t\t Stop animation\r\n\
-\t clear\t\t Clear screen\r\n\
-\t help\t\t Print this message\r\n\r\n";
+\ton        Start animation\r\n\
+\toff       Stop animation\r\n\
+\tstatus    Get animation status\r\n\
+\tset <Hz>  Set animation frequency in Hertz [1-100]\r\n\
+\tclear     Clear screen\r\n\
+\thelp      Print this message\r\n\r\n
+CONTROL KEYS:\r\n\
+\tCtrl+D    Start animation\r\n\
+\tCtrl+C    Stop animation\r\n\
+\tCtrl+S    Increment animation frequency\r\n\
+\tCtrl+X    Decrement animation frequency\r\n\
+";
 
 pub type Serial = serial::Serial<stm32::USART2, serial::FullConfig>;
 pub type BlinkTimer = Timer<stm32::TIM16>;
@@ -101,7 +107,7 @@ const APP: () = {
 
         loop {
             match shell.poll() {
-                Ok(Some((cmd, args))) => {
+                Ok(Some(Input::Command((cmd, args)))) => {
                     match cmd {
                         "help" => {
                             shell.write_str(HELP).ok();
@@ -146,7 +152,35 @@ const APP: () = {
                             write!(shell, "{0:}unsupported command{0:}", CR).ok();
                         }
                     }
-                    shell.write_str(SHELL_PROMT).ok();
+                    shell.write_str(SHELL_PROMPT).ok();
+                }
+                // CTRL-D
+                Ok(Some(Input::Control(control::EOT))) => {
+                    blink_enabled.lock(|e| *e = true);
+                }
+                // CTRL-C
+                Ok(Some(Input::Control(control::ETX))) => {
+                    blink_enabled.lock(|e| *e = false);
+                }
+                // CTRL-S
+                Ok(Some(Input::Control(control::DC3))) => {
+                    if *blink_freq == 100 {
+                        return;
+                    }
+                    *blink_freq += 1;
+                    blink_timer.lock(|t| {
+                        t.start((*blink_freq as u32 * 2).hz());
+                    });
+                }
+                // CTRL-X
+                Ok(Some(Input::Control(control::CAN))) => {
+                    if *blink_freq == 1 {
+                        return;
+                    }
+                    *blink_freq -= 1;
+                    blink_timer.lock(|t| {
+                        t.start((*blink_freq as u32 * 2).hz());
+                    });
                 }
                 Err(ShellError::WouldBlock) => break,
                 _ => {}

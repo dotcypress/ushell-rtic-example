@@ -1,6 +1,8 @@
 # ushell-rtic-example
 
-<img width="405" src="shell.png" />
+<img width="500" src="ushell.png" />
+
+<a href="https://asciinema.org/a/BJJ8elGqEDdZ6v9Rhr0XmeKFF" target="_blank"><img src="https://asciinema.org/a/BJJ8elGqEDdZ6v9Rhr0XmeKFF.svg" /></a>
 
 ## License
 
