@@ -13,8 +13,9 @@ use core::fmt::Write;
 use core::usize;
 
 use hal::{gpio::*, prelude::*, serial, stm32, timer::*};
-use ushell::ShellError;
-use ushell::{autocomplete::StaticAutocomplete, control, history::LRUHistory, Input, UShell};
+use ushell::{
+    autocomplete::StaticAutocomplete, control, history::LRUHistory, Input, ShellError, UShell,
+};
 
 const SHELL_PROMPT: &str = "#> ";
 const CR: &str = "\r\n";
@@ -36,24 +37,33 @@ CONTROL KEYS:\r\n\
 \tCtrl+X    Decrement animation frequency\r\n\
 ";
 
-pub type Serial = serial::Serial<stm32::USART2, serial::FullConfig>;
-pub type BlinkTimer = Timer<stm32::TIM16>;
-pub type Led = gpioa::PA5<Output<PushPull>>;
-
 #[rtic::app(device = hal::stm32, peripherals = true)]
-const APP: () = {
-    struct Resources {
-        led: Led,
-        blink_freq: u8,
+mod ushell_demo {
+    use super::*;
+
+    type Serial = serial::Serial<stm32::USART2, serial::FullConfig>;
+    type BlinkTimer = Timer<stm32::TIM16>;
+    type Led = gpioa::PA5<Output<PushPull>>;
+    type Shell = UShell<Serial, StaticAutocomplete<6>, LRUHistory<32, 4>, 32>;
+
+    #[shared]
+    struct Shared {
         blink_enabled: bool,
         blink_timer: BlinkTimer,
-        shell: UShell<Serial, StaticAutocomplete<6>, LRUHistory<32, 4>, 32>,
+    }
+
+    #[local]
+    struct Local {
+        blink_freq: u8,
+        led: Led,
+        shell: Shell,
     }
 
     #[init]
-    fn init(ctx: init::Context) -> init::LateResources {
+    fn init(ctx: init::Context) -> (Shared, Local, init::Monotonics) {
         let mut rcc = ctx.device.RCC.constrain();
         let port_a = ctx.device.GPIOA.split(&mut rcc);
+        let led = port_a.pa5.into_push_pull_output();
 
         let mut blink_timer = ctx.device.TIM16.timer(&mut rcc);
         blink_timer.start(4.hz());
@@ -75,35 +85,43 @@ const APP: () = {
         let history = LRUHistory::default();
         let shell = UShell::new(serial, autocomplete, history);
 
-        let led = port_a.pa5.into_push_pull_output();
-        init::LateResources {
-            led,
-            shell,
-            blink_timer,
-            blink_freq: 2,
-            blink_enabled: false,
-        }
+        (
+            Shared {
+                blink_timer,
+                blink_enabled: false,
+            },
+            Local {
+                shell,
+                blink_freq: 2,
+                led,
+            },
+            init::Monotonics(),
+        )
     }
 
-    #[task(binds = TIM16, priority = 2, resources = [blink_timer, blink_enabled, led])]
+    #[task(binds = TIM16, priority = 2, shared = [blink_timer, blink_enabled], local = [led])]
     fn blink_timer_tick(ctx: blink_timer_tick::Context) {
-        if *ctx.resources.blink_enabled {
-            ctx.resources.led.toggle().expect("Failed to blink o_0");
+        let led = ctx.local.led;
+        let blink_timer_tick::SharedResources {
+            mut blink_enabled,
+            mut blink_timer,
+        } = ctx.shared;
+
+        if blink_enabled.lock(|e| *e) {
+            led.toggle().expect("Failed to blink o_0");
         } else {
-            ctx.resources
-                .led
-                .set_low()
-                .expect("Failed to switch led off");
+            led.set_low().expect("Failed to switch led off");
         }
-        ctx.resources.blink_timer.clear_irq();
+        blink_timer.lock(|t| t.clear_irq());
     }
 
-    #[task(binds = USART2, priority = 1, resources = [shell, blink_timer, blink_freq, blink_enabled])]
+    #[task(binds = USART2, priority = 1, shared = [blink_timer, blink_enabled], local = [blink_freq, shell])]
     fn serial_data(ctx: serial_data::Context) {
-        let shell = ctx.resources.shell;
-        let blink_freq = ctx.resources.blink_freq;
-        let mut blink_timer = ctx.resources.blink_timer;
-        let mut blink_enabled = ctx.resources.blink_enabled;
+        let serial_data::SharedResources {
+            mut blink_enabled,
+            mut blink_timer,
+        } = ctx.shared;
+        let serial_data::LocalResources { blink_freq, shell } = ctx.local;
 
         loop {
             match shell.poll() {
@@ -154,16 +172,13 @@ const APP: () = {
                     }
                     shell.write_str(SHELL_PROMPT).ok();
                 }
-                // CTRL-D
-                Ok(Some(Input::Control(control::EOT))) => {
+                Ok(Some(Input::Control(control::CTRL_D))) => {
                     blink_enabled.lock(|e| *e = true);
                 }
-                // CTRL-C
-                Ok(Some(Input::Control(control::ETX))) => {
+                Ok(Some(Input::Control(control::CTRL_C))) => {
                     blink_enabled.lock(|e| *e = false);
                 }
-                // CTRL-S
-                Ok(Some(Input::Control(control::DC3))) => {
+                Ok(Some(Input::Control(control::CTRL_S))) => {
                     if *blink_freq == 100 {
                         return;
                     }
@@ -172,8 +187,7 @@ const APP: () = {
                         t.start((*blink_freq as u32 * 2).hz());
                     });
                 }
-                // CTRL-X
-                Ok(Some(Input::Control(control::CAN))) => {
+                Ok(Some(Input::Control(control::CTRL_X))) => {
                     if *blink_freq == 1 {
                         return;
                     }
@@ -187,4 +201,4 @@ const APP: () = {
             }
         }
     }
-};
+}
