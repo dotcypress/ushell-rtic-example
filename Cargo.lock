@@ -442,8 +442,7 @@ checksum = "8ccb82d61f80a663efe1f787a51b16b5a51e3314d6ac365b08639f52387b33f3"
 [[package]]
 name = "ushell"
 version = "0.3.3"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "bb2b06c547d0b52e46d6b8310799b4a6a6a8d94b2be78110f8e3ff998164d33e"
+source = "git+https://github.com/dotcypress/ushell?branch=main#651981a84fea05f7860ecf8dbc319b9693d785c4"
 dependencies = [
  "embedded-hal",
  "heapless",
